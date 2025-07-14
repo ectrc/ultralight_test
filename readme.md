@@ -11,3 +11,8 @@
   ```
 
 - Download the Ultralight SDK from [Ultralight's official website](https://ultralig.ht/), rename to "ultralight" and place it in `/external` directory.
+
+### bugs
+
+- resizing fucks up
+- typing is kinda weird
