@@ -1,5 +1,9 @@
 #include "render.h"
+#include "window.h"
+#include "logger.h"
+#include "view.h"
 
+#include <windowsx.h>
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
@@ -7,16 +11,119 @@
 #include <Ultralight/Ultralight.h>
 #include <AppCore/AppCore.h>
 #include <AppCore/Platform.h>
-ultralight::RefPtr<ultralight::Renderer> renderer;
-ultralight::RefPtr<ultralight::View> view;
+#include <Ultralight/String.h>
+#include <Ultralight/KeyEvent.h>
+#include <Ultralight/MouseEvent.h>
+#include <Ultralight/ScrollEvent.h>
 
+process_t direct_hook::process_original_ = nullptr;
 ID3D11Device* direct_hook::device_ = nullptr;
 ID3D11DeviceContext* direct_hook::context_ = nullptr;
 ID3D11RenderTargetView* direct_hook::render_target_view_ = nullptr;
+ID3D11ShaderResourceView* direct_hook::ultralight_srv_ = nullptr;
 std::shared_ptr<direct_hook> direct_hook::instance_ = nullptr;
 std::once_flag direct_hook::init_flag;
 
-ID3D11ShaderResourceView* ultralight_srv = nullptr;
+LRESULT CALLBACK direct_hook::process_trampoline(HWND window, UINT message, WPARAM wide_param, LPARAM long_param) {
+  if (message == WM_KEYUP && (wide_param == VK_INSERT || wide_param == VK_END)) {
+    direct_hook::show_menu.store(!direct_hook::show_menu.load());
+  }
+
+  if (direct_hook::show_menu.load() && ultraview::view.get() != nullptr) {
+    switch (message) {
+      case WM_MOUSEMOVE:
+      case WM_LBUTTONDOWN: 
+      case WM_RBUTTONDOWN:
+      case WM_MBUTTONDOWN:
+      case WM_LBUTTONUP:
+      case WM_RBUTTONUP:
+      case WM_MBUTTONUP: {
+        ultraview::queued_event event = ultraview::mouse_event{};
+        auto& mouse_event = std::get<ultraview::mouse_event>(event);
+        mouse_event.x = GET_X_LPARAM(long_param);
+        mouse_event.y = GET_Y_LPARAM(long_param);
+        
+        if (message == WM_MOUSEMOVE) {
+          mouse_event.type = ultralight::MouseEvent::kType_MouseMoved;
+        } else if (message == WM_LBUTTONDOWN) {
+          mouse_event.type = ultralight::MouseEvent::kType_MouseDown;
+          mouse_event.button = ultralight::MouseEvent::kButton_Left;
+        } else if (message == WM_RBUTTONDOWN) {
+          mouse_event.type = ultralight::MouseEvent::kType_MouseDown;
+          mouse_event.button = ultralight::MouseEvent::kButton_Right;
+        } else if (message == WM_MBUTTONDOWN) {
+          mouse_event.type = ultralight::MouseEvent::kType_MouseDown;
+          mouse_event.button = ultralight::MouseEvent::kButton_Middle;
+        } else if (message == WM_LBUTTONUP) {
+          mouse_event.type = ultralight::MouseEvent::kType_MouseUp;
+          mouse_event.button = ultralight::MouseEvent::kButton_Left;
+        } else if (message == WM_RBUTTONUP) {
+          mouse_event.type = ultralight::MouseEvent::kType_MouseUp;
+          mouse_event.button = ultralight::MouseEvent::kButton_Right;
+        } else if (message == WM_MBUTTONUP) {
+          mouse_event.type = ultralight::MouseEvent::kType_MouseUp;
+          mouse_event.button = ultralight::MouseEvent::kButton_Middle;
+        }
+        
+        ultraview::QueueEvent(event);
+        return true;
+      }
+      case WM_MOUSEWHEEL: {
+        ultraview::queued_event event = ultraview::scroll_event{};
+
+        auto& scroll_event = std::get<ultraview::scroll_event>(event);
+        scroll_event.delta_y = GET_WHEEL_DELTA_WPARAM(wide_param) / WHEEL_DELTA * 32;
+
+        ultraview::QueueEvent(scroll_event);
+        return true;
+      }
+      case WM_KEYDOWN:
+      case WM_KEYUP:
+      case WM_SYSKEYUP:
+      case WM_SYSKEYDOWN: {
+        ultraview::queued_event event = ultraview::keyboard_event{};
+        auto& key_event = std::get<ultraview::keyboard_event>(event);
+
+        key_event.type = (message == WM_SYSKEYDOWN || message == WM_SYSKEYDOWN) 
+            ? ultralight::KeyEvent::kType_KeyDown 
+            : ultralight::KeyEvent::kType_KeyUp;
+        key_event.virtual_key_code = static_cast<int>(wide_param);
+        key_event.native_key_code = (static_cast<int>(long_param) >> 16) & 0xFF;
+        key_event.modifiers = ultraview::GetKeyMods();
+        key_event.is_system_key = (message == WM_SYSKEYDOWN || message == WM_SYSKEYUP);
+
+        ultralight::String key_identifier_result;
+        ultralight::GetKeyIdentifierFromVirtualKeyCode(key_event.virtual_key_code, key_identifier_result);
+        key_event.key_identifier = key_identifier_result;
+
+        ultraview::QueueEvent(event);
+        return true;
+      }
+
+      case WM_CHAR: {
+        ultraview::queued_event event = ultraview::keyboard_event{};
+        auto& key_event = std::get<ultraview::keyboard_event>(event);
+
+        wchar_t ch = static_cast<wchar_t>(wide_param);
+        char utf8_char[5] = {0};
+        int len = WideCharToMultiByte(CP_UTF8, 0, &ch, 1, utf8_char, sizeof(utf8_char), nullptr, nullptr);
+        
+        key_event.text = ultralight::String(utf8_char, len);
+        key_event.unmodified_text = key_event.text;
+        key_event.modifiers = ultraview::GetKeyMods();
+        key_event.type = ultralight::KeyEvent::kType_Char;
+
+        ultraview::QueueEvent(event);
+        return true;
+      }
+    }
+
+    return CallWindowProc(direct_hook::process_original_, window, message, wide_param, long_param);
+  }
+
+  ImGui_ImplWin32_WndProcHandler(window, message, wide_param, long_param);
+  return CallWindowProc(direct_hook::process_original_, window, message, wide_param, long_param);
+}
 
 auto direct_hook::instance() -> std::shared_ptr<direct_hook> {
   if (instance_ == nullptr) {
@@ -63,45 +170,43 @@ auto CALLBACK direct_hook::present_trampoline(IDXGISwapChain* chain, UINT sync_i
     ImGui_ImplWin32_Init(swap_chain_desc.OutputWindow);
     ImGui_ImplDX11_Init(device_, context_);
 
+    ultraview::window_ = swap_chain_desc.OutputWindow;
+    process_original_ = (WNDPROC)SetWindowLongPtr(swap_chain_desc.OutputWindow, GWLP_WNDPROC, (LONG_PTR)process_trampoline);
+
     auto& platform = ultralight::Platform::instance();
     platform.set_file_system(ultralight::GetPlatformFileSystem("C:\\Users\\User\\Desktop\\asd\\"));
     platform.set_font_loader(ultralight::GetPlatformFontLoader());
     platform.set_logger(ultralight::GetDefaultLogger("ul.log"));
 
     ultralight::Config config{};
+    config.user_stylesheet = "html, body { background: transparent; }";
     platform.set_config(config);
 
     ultralight::ViewConfig view_config;
     view_config.initial_device_scale = 1.0;
-    view_config.is_transparent = false;
+    view_config.is_transparent = true;
     view_config.is_accelerated = false;
-
-    renderer = ultralight::Renderer::Create();
-    if (!renderer) {
-      LOG("Failed to create Ultralight App instance");
-      return;
-    }
     
-    view = renderer->CreateView(swap_chain_desc.BufferDesc.Width, swap_chain_desc.BufferDesc.Height, view_config, nullptr);
-    if (!view) {
-      LOG("Failed to create Ultralight view");
-      return;
-    }
-    // view->LoadHTML("<h1>HELLO HAZEL</h1>");
-
+    const auto view = ultraview::get_view(swap_chain_desc.BufferDesc.Width, swap_chain_desc.BufferDesc.Height);
     view->set_display_id(0);
-    view->LoadURL("https://lezah.cloud");
+    view->set_view_listener(&ultraview::view_listener::instance());
+    // view->LoadURL("https://retrac.site");
+    // view->LoadURL("https://google.com");
+    view->LoadHTML("<h1 style='display:flex;flex-direction:column;'>HELLO BUKLLLY <a style='color:black;' href='https://retrac.site'>GO TO RETRAC SITE</a><a style='color:black;' href='https://google.com'>GO TO google SITE</a> <img src='https://media.discordapp.net/attachments/1346186915040329789/1394067962444513311/plytix-682443bc51cf6986fd8fad18-png.png?ex=68757676&is=687424f6&hm=9a582e40c0e668a603da949850fe163306845841d345b74a8647951f9378272b&=&format=webp&quality=lossless' /></h1>");
     view->Focus();
 
-    LOG("Created Ultralight context and initialized ImGui");
+    ultraview::ul_thread_id_ = GetCurrentThreadId();
   });
+  ultraview::HandleQueuedEvents();
 
   ImGui_ImplDX11_NewFrame();
   ImGui_ImplWin32_NewFrame();
   ImGui::NewFrame();
 
-  renderer->Update();
-  direct_hook::render_ultralight();
+  if (show_menu.load()) {
+    ultraview::get_renderer()->Update();
+    direct_hook::render_ultralight();
+  }
 
   ImGui::Render();
   ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -149,18 +254,18 @@ auto CALLBACK direct_hook::resize_trampoline(IDXGISwapChain* chain, UINT buffer,
   viewport.TopLeftY = 0.0f;
   context_->RSSetViewports(1, &viewport);
   
-  view->Resize(width, height);
+  ultraview::get_view()->Resize(width, height);
   
   return S_OK;
 }
 
 void direct_hook::render_ultralight() {
-  if (!renderer || !view) return;
+  if (!ultraview::get_renderer() || !ultraview::get_view()) return;
 
-  renderer->RefreshDisplay(0);
-  renderer->Render();
+  ultraview::get_renderer()->RefreshDisplay(0);
+  ultraview::get_renderer()->Render();
 
-  auto surface = view->surface();
+  auto surface = ultraview::get_view()->surface();
   if (surface == nullptr) {
     LOG("Failed to get surface from Ultralight view");
     return;
@@ -225,12 +330,12 @@ void direct_hook::render_ultralight() {
   srv_desc.Texture2D.MostDetailedMip = 0;
   srv_desc.Texture2D.MipLevels = 1;
 
-  if (ultralight_srv) {
-    ultralight_srv->Release();
-    ultralight_srv = nullptr;
+  if (ultralight_srv_) {
+    ultralight_srv_->Release();
+    ultralight_srv_ = nullptr;
   }
 
-  if (FAILED(direct_hook::device_->CreateShaderResourceView(texture, &srv_desc, &ultralight_srv))) {
+  if (FAILED(direct_hook::device_->CreateShaderResourceView(texture, &srv_desc, &ultralight_srv_))) {
     LOG("Failed to create shader resource view");
     texture->Release();
     return;
@@ -249,7 +354,7 @@ void direct_hook::render_ultralight() {
   direct_hook::context_->RSSetViewports(1, &viewport);
 
   ImGui::SetNextWindowPos(ImVec2(0, 0));
-  ImGui::SetNextWindowSize(ImVec2(view->width(), view->height()));
+  ImGui::SetNextWindowSize(ImVec2(ultraview::get_view()->width(), ultraview::get_view()->height()));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -261,13 +366,13 @@ void direct_hook::render_ultralight() {
     ImGuiWindowFlags_NoTitleBar |
     ImGuiWindowFlags_NoResize |
     ImGuiWindowFlags_NoMove);
-  ImGui::Image(reinterpret_cast<ImTextureID>(ultralight_srv), ImVec2(bitmap_image->width(), bitmap_image->height()));
+  ImGui::Image(reinterpret_cast<ImTextureID>(ultralight_srv_), ImVec2(bitmap_image->width(), bitmap_image->height()));
   ImGui::End();
   ImGui::PopStyleVar(3);
 }
 
 direct_hook::direct_hook() {
-  const auto window_handle = FindWindow("ImGui Example", nullptr);
+  const auto window_handle = windows::main_window();
   if (window_handle == nullptr) {
     LOG("Failed to get foreground window handle");
     return;

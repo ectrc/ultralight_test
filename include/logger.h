@@ -72,13 +72,13 @@ namespace globals {
 #define CLEAR_CONSOLE() ::globals::logger_instance->clear_console();
 #define CLEANUP_LOGGER() ::globals::logger_instance.reset(); return true;
 
+#endif
+
 #else
 
 #define LOG(...) do {} while (0)
 #define LOG_W(...) do {} while (0)
 #define CLEAR_CONSOLE() do {} while (0)
 #define CLEANUP_LOGGER() do {} while (0)
-
-#endif
 
 #endif

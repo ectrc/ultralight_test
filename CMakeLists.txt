@@ -15,6 +15,7 @@ add_subdirectory(external/minhook)
 add_library(ul_test SHARED 
   library.cpp 
   src/render.cpp
+  src/view.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui_draw.cpp
