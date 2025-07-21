@@ -14,6 +14,9 @@ add_subdirectory(external/libhat)
 add_library(sdk STATIC
   src/finder.cpp
   src/runtime.cpp
+  src/memory.cpp
+  src/classes/misc.cpp
+  src/classes/uobject.cpp
 )
 
 target_include_directories(sdk PUBLIC include)

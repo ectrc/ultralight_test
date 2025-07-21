@@ -134,8 +134,15 @@ struct fname_entry_id
 
 class fname {
 public:
-  NO_INIT(fname);
+  auto operator==(const fname& other) const -> bool {
+    return index_.id_ == other.index_.id_;
+  }
 
+  auto operator!=(const fname& other) const -> bool {
+    return !(*this == other);
+  }
+
+  auto to_string() const -> std::string;
 public:
   fname_entry_id index_;
   uint32_t number_;

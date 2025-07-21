@@ -4,13 +4,36 @@
 #include <cstdint>
 #include <variant>
 
-#include "macros.h"
+#include "../macros.h"
+#include "../finder.h"
 
 namespace sdk {
 
 class uobject {
 public:
   NO_INIT(uobject);
+
+public:
+  template<typename type = uobject>
+  static type* find(const std::string& name, class uclass* Class = nullptr)
+  {
+    static const auto find_object_string_ref = sdk::find_string_ref(L"Illegal call to StaticFindObject() while serializing object data!");
+    _ASSERT(find_object_string_ref != 0 && "Failed to find object string reference");
+    
+    static const auto find_object_function = sdk::find_pattern_near(find_object_string_ref, hat::compile_signature<"48 89 5C">(), 0, find_direction::backward);
+    _ASSERT(find_object_function.has_value() && "Failed to find object function");
+
+    if (!find_object_function.has_value()) {
+      return nullptr;
+    }
+
+    typedef uobject*(*find_object_t)(class uclass*, class uobject*, const wchar_t*, bool);
+    static const auto find_object = reinterpret_cast<find_object_t>(find_object_function.value());
+
+    return (type*)find_object(Class, nullptr, std::wstring(name.begin(), name.end()).c_str(), false);
+  }
+
+  auto process_event(class ufunction* function, void* params = nullptr) -> void;
 
 public:
   uintptr_t** vtable_;

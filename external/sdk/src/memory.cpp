@@ -2,6 +2,8 @@
 
 #include "finder.h"
 
+namespace sdk {
+
 auto fmemory::free(void* ptr) -> void {
   static const auto free_function = sdk::find_pattern(hat::compile_signature<"48 85 C9 74 2E 53 48 83 EC 20 48 8B D9 ??">());
   _ASSERT(free_function.has_value() && "Failed to find free function");
@@ -28,4 +30,6 @@ auto fmemory::malloc(size_t count, uint32_t alignment) -> void* {
 
 auto fmemory::memcpy(void* dest, const void* src, size_t size) -> void* {
   return std::memcpy(dest, src, size);
+}
+
 }
