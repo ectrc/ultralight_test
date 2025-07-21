@@ -9,13 +9,14 @@ if (MSVC)
   add_compile_options(/EHsc)
 endif()
 
-add_subdirectory(external/libhat)
 add_subdirectory(external/minhook)
+add_subdirectory(external/sdk)
 
 add_library(ul_test SHARED 
   library.cpp 
   src/render.cpp
   src/view.cpp
+  src/world_to_screen.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui_draw.cpp
@@ -37,9 +38,9 @@ target_include_directories(ul_test PUBLIC
 )
 set(UL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/ultralight/lib")
 
-target_link_libraries(ul_test PUBLIC 
-  libhat 
-  d3d11 
+target_link_libraries(ul_test PUBLIC
+  d3d11
+  sdk
   minhook
   ${UL_LIB_DIR}/AppCore.lib
   ${UL_LIB_DIR}/Ultralight.lib

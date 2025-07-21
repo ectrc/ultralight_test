@@ -2,6 +2,7 @@
 #include "window.h"
 #include "logger.h"
 #include "view.h"
+#include "world_to_screen.h"
 
 #include <windowsx.h>
 #include <imgui.h>
@@ -207,6 +208,40 @@ auto CALLBACK direct_hook::present_trampoline(IDXGISwapChain* chain, UINT sync_i
     ultraview::get_renderer()->Update();
     direct_hook::render_ultralight();
   }
+
+  /////////////////////////////////////// FAKE CAMERA TO TEST WORLD TO SCREEN ///////////////////////////////////////
+
+  static auto world_position = vector_3{3.0f, 0.0f, 5.0f};
+  world_position.z -= 0.1f; // Adjust to ensure it's in front of the camera
+
+  const auto camera_rotation = vector_3{0.0f, 0.0f, 0.0f};
+  const auto camera_position = vector_3{0.0f, 0.0f, 0.0f};
+
+  const auto view_matrix = mat_4{ // identity if no camera transform
+    {1, 0, 0, 0},
+    {0, 1, 0, 0},
+    {0, 0, 1, 0},
+    {0, 0, 0, 1}
+  };
+
+  const auto projection_matrix = mat_4{
+    {1.0f, 0.0f,  0.0f, 0.0f},
+    {0.0f, 1.0f,  0.0f, 0.0f},
+    {0.0f, 0.0f, -1.0f, -1.0f},
+    {0.0f, 0.0f, -2.0f,  0.0f}
+  };
+
+  const auto screen_result = ericutil::world_to_screen::point(world_position, camera_position, camera_rotation, view_matrix, projection_matrix);
+  if (screen_result.valid) {
+    ImGui::GetBackgroundDrawList()->AddRectFilled(
+      ImVec2(screen_result.screen.x - 5, screen_result.screen.y - 5),
+      ImVec2(screen_result.screen.x + 5, screen_result.screen.y + 5),
+      IM_COL32(255, 0, 0, 255)
+    );
+  }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
   ImGui::Render();
   ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

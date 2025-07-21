@@ -1,5 +1,5 @@
-[submodule "external/libhat"]
-	path = external/libhat
+[submodule "external/sdk/external/libhat"]
+	path = external/sdk/external/libhat
 	url = https://github.com/BasedInc/libhat/
 [submodule "external/minhook"]
 	path = external/minhook
