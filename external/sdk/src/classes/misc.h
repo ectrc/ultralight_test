@@ -86,6 +86,7 @@ public:
 class fstring : public tarray<wchar_t> {
 public:
   fstring() : tarray<wchar_t>() {}
+  
   fstring(const wchar_t* str) {
     if (!str) {
       return;
