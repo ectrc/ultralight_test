@@ -135,6 +135,10 @@ auto direct_hook::instance() -> std::shared_ptr<direct_hook> {
 }
 
 auto CALLBACK direct_hook::present_trampoline(IDXGISwapChain* chain, UINT sync_interval, UINT flags) -> HRESULT {
+  if (finished_last_render_.load()) {
+    return instance_->present_hook_.original()(chain, sync_interval, flags);
+  }
+
   std::call_once(init_flag, [&]() {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -182,11 +186,6 @@ auto CALLBACK direct_hook::present_trampoline(IDXGISwapChain* chain, UINT sync_i
     ultralight::Config config{};
     config.user_stylesheet = "html, body { background: transparent; }";
     platform.set_config(config);
-
-    ultralight::ViewConfig view_config;
-    view_config.initial_device_scale = 1.0;
-    view_config.is_transparent = true;
-    view_config.is_accelerated = false;
     
     const auto view = ultraview::get_view(swap_chain_desc.BufferDesc.Width, swap_chain_desc.BufferDesc.Height);
     view->set_display_id(0);
@@ -247,6 +246,47 @@ auto CALLBACK direct_hook::present_trampoline(IDXGISwapChain* chain, UINT sync_i
   ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
   if (render_target_view_) {
     direct_hook::context_->OMSetRenderTargets(1, &render_target_view_, nullptr);
+  }
+
+  if (wants_end_) {
+    if (render_target_view_) {
+      render_target_view_->Release();
+      render_target_view_ = nullptr;
+
+      LOG("Render target view released");
+    }
+
+    if (context_) {
+      context_->Release();
+      context_ = nullptr;
+
+      LOG("D3D11 context released");
+    }
+
+    if (device_) {
+      device_->Release();
+      device_ = nullptr;
+
+      LOG("D3D11 device released");
+    }
+
+    if (ultralight_srv_) {
+      ultralight_srv_->Release();
+      ultralight_srv_ = nullptr;
+
+      LOG("Ultralight shader resource view released");
+    }
+
+    if (ultraview::window_) {
+      SetWindowLongPtr(ultraview::window_, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(direct_hook::process_original_));
+      LOG("Window procedure unhooked");
+    }
+
+    // ultraview::renderer = nullptr;
+    // ultraview::view = nullptr;
+    // ultraview::view_listener = nullptr;
+    
+    finished_last_render_ = true;
   }
 
   return instance_->present_hook_.original()(chain, sync_interval, flags);

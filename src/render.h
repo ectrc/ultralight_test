@@ -36,6 +36,9 @@ public:
   static void render_ultralight();
   static std::once_flag init_flag;
   static inline std::atomic_bool show_menu = true;
+
+  static inline std::atomic_bool wants_end_ = false;
+  static inline std::atomic_bool finished_last_render_ = false;
 };
 
 #endif

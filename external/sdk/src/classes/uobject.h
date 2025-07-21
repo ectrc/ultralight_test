@@ -79,6 +79,14 @@ public:
 
     return item->object;
   }
+
+  auto size() const -> uint32_t {
+    return this->num_elements_;
+  }
+
+  auto max_size() const -> uint32_t {
+    return this->max_elements_;
+  }
 };
 
 class fchunked_object_array {
@@ -115,6 +123,14 @@ public:
 
     return item->object;
   }
+
+  auto size() const -> uint32_t {
+    return this->num_elements_;
+  }
+
+  auto max_size() const -> uint32_t {
+    return this->max_elements_;
+  }
 };
 
 class uobject_array {
@@ -134,6 +150,32 @@ public:
     } else {
       auto& chunked_array = std::get<fchunked_object_array>(*array_);
       return chunked_array.find(index);
+    }
+  }
+
+  auto find_object(const uint32_t index) -> uobject* {
+    if (is_default_array_) {
+      auto& default_array = std::get<fdefault_uobject_array>(*array_);
+      return default_array.find_object(index);
+    } else {
+      auto& chunked_array = std::get<fchunked_object_array>(*array_);
+      return chunked_array.find_object(index);
+    }
+  }
+
+  auto size() const -> uint32_t {
+    if (is_default_array_) {
+      return std::get<fdefault_uobject_array>(*array_).size();
+    } else {
+      return std::get<fchunked_object_array>(*array_).size();
+    }
+  }
+
+  auto max_size() const -> uint32_t {
+    if (is_default_array_) {
+      return std::get<fdefault_uobject_array>(*array_).max_size();
+    } else {
+      return std::get<fchunked_object_array>(*array_).max_size();
     }
   }
 };

@@ -11,14 +11,13 @@ namespace sdk {
 
 class runtime {
 public:
-  runtime();
-
   static auto get() -> runtime& {
     static runtime instance;
     return instance;
   }
 
   auto load_engine_version() -> std::expected<std::tuple<std::string, uint64_t>, sdk::find_error>;
+  auto load_gobjects() -> uobject_array*;
 
 public:
   uint64_t engine_version_ = 0;
