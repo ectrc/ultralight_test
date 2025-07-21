@@ -145,37 +145,41 @@ public:
 public:
   auto find(const uint32_t index) -> fuobject_item* {
     if (is_default_array_) {
-      auto& default_array = std::get<fdefault_uobject_array>(*array_);
-      return default_array.find(index);
+      auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
+      return default_array->find(index);
     } else {
-      auto& chunked_array = std::get<fchunked_object_array>(*array_);
-      return chunked_array.find(index);
+      auto chunked_array = reinterpret_cast<fchunked_object_array*>(array_);
+      return chunked_array->find(index);
     }
   }
 
   auto find_object(const uint32_t index) -> uobject* {
     if (is_default_array_) {
-      auto& default_array = std::get<fdefault_uobject_array>(*array_);
-      return default_array.find_object(index);
+      auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
+      return default_array->find_object(index);
     } else {
-      auto& chunked_array = std::get<fchunked_object_array>(*array_);
-      return chunked_array.find_object(index);
+      auto chunked_array = reinterpret_cast<fchunked_object_array*>(array_);
+      return chunked_array->find_object(index);
     }
   }
 
   auto size() const -> uint32_t {
     if (is_default_array_) {
-      return std::get<fdefault_uobject_array>(*array_).size();
+      auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
+      return default_array->size();
     } else {
-      return std::get<fchunked_object_array>(*array_).size();
+      auto chunked_array = reinterpret_cast<fchunked_object_array*>(array_);
+      return chunked_array->size();
     }
   }
 
   auto max_size() const -> uint32_t {
     if (is_default_array_) {
-      return std::get<fdefault_uobject_array>(*array_).max_size();
+      auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
+      return default_array->max_size();
     } else {
-      return std::get<fchunked_object_array>(*array_).max_size();
+      auto chunked_array = reinterpret_cast<fchunked_object_array*>(array_);
+      return chunked_array->max_size();
     }
   }
 };

@@ -11,19 +11,20 @@ namespace sdk {
 
 class runtime {
 public:
+  runtime(): engine_version_(0), engine_version_string_(""), object_array_(0, true) {};
+
   static auto get() -> runtime& {
     static runtime instance;
     return instance;
   }
 
   auto load_engine_version() -> std::expected<std::tuple<std::string, uint64_t>, sdk::find_error>;
-  auto load_gobjects() -> uobject_array*;
+  auto load_gobjects() -> std::expected<uobject_array, sdk::find_error>;
 
 public:
   uint64_t engine_version_ = 0;
   std::string engine_version_string_;
-
-  uobject_array* object_array_;
+  uobject_array object_array_;
 };
 
 }

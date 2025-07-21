@@ -19,9 +19,9 @@ auto __stdcall thread(void* module) -> void {
   LOG("Engine Version: {}, Version Number: {}", std::get<0>(result.value()), std::get<1>(result.value()));
 
   auto gobjects = runtime.load_gobjects();
-  LOG("GObjects: {:#x}", reinterpret_cast<uintptr_t>(gobjects));
+  LOG("GObjects: {:#x}", (gobjects->size()));
 
-  FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(module), 0);
+  // FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(module), 0);
 }
 
 auto __stdcall DllExit(void* module, const unsigned long reason, void*) -> bool {
