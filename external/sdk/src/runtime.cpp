@@ -7,7 +7,7 @@
 namespace sdk {
 
 auto runtime::load_engine_version() -> std::expected<std::tuple<std::string, uint64_t>, sdk::find_error> {
-  static const auto get_version_function = sdk::find_pattern(hat::compile_signature<"40 53 48 83 EC 20 48 8B D9 E8 ? ? ? ? 48 8B C8 41 B8 04 ? ? ? 48 8B">());
+  static const auto get_version_function = sdk::find_pattern(hat::compile_signature<"40 53 48 83 EC 20 48 8B D9 E8 ?? ?? ?? ?? 48 8B C8 41 B8 04 ?? ?? ?? 48 8B">());
   _ASSERT(get_version_function.has_value() && "Failed to find EngineVersion offset");
   
   typedef fstring(*get_version_t)();
@@ -36,7 +36,7 @@ auto runtime::load_engine_version() -> std::expected<std::tuple<std::string, uin
 }
 
 auto runtime::load_gobjects() -> std::expected<uobject_array, sdk::find_error> {
-  static const auto global_objects = sdk::find_pattern(hat::compile_signature<"48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1">(), 3);
+  static const auto global_objects = sdk::find_pattern(hat::compile_signature<"48 8B 05 ?? ?? ?? ?? 48 8B 0C C8 48 8D 04 D1">(), 3);
   _ASSERT(global_objects.has_value() && "Failed to find global objects pattern");
 
   this->object_array_ = {global_objects.value(), this->engine_version_ < 421};
