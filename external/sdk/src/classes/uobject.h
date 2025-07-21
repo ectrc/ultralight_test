@@ -59,32 +59,32 @@ public:
 
 public:
   fuobject_item* object_array_;
-  uint32_t max_elements_;
-  uint32_t num_elements_;
+  int32_t max_elements_;
+  int32_t num_elements_;
 
 public:
-  auto find(const uint32_t index) -> fuobject_item* {
+  auto find(const int32_t index) -> fuobject_item {
     if (index >= this->num_elements_ || index < 0) {
-      return nullptr;
+      return {nullptr, 0, 0, 0};
     }
 
-    return &object_array_[index];
+    return object_array_[index];
   }
 
-  auto find_object(const uint32_t index) -> uobject* {
+  auto find_object(const int32_t index) -> uobject* {
     auto item = this->find(index);
-    if (!item) {
+    if (!item.object) {
       return nullptr;
     }
 
-    return item->object;
+    return item.object;
   }
 
-  auto size() const -> uint32_t {
+  auto size() const -> int32_t {
     return this->num_elements_;
   }
 
-  auto max_size() const -> uint32_t {
+  auto max_size() const -> int32_t {
     return this->max_elements_;
   }
 };
@@ -94,41 +94,41 @@ public:
   NO_INIT(fchunked_object_array);
 
 public:
-  enum
-  {
-    elements_per_chunk = 64 * 1024,
-  };
+  static constexpr int32_t elements_per_chunk = 64 * 1024;
 
   fuobject_item** items_;
   fuobject_item* allocated_items_;
-  uint32_t max_elements_;
-  uint32_t num_elements_;
-  uint32_t max_chunks_;
-  uint32_t num_chunks_;
+  int32_t max_elements_;
+  int32_t num_elements_;
+  int32_t max_chunks_;
+  int32_t num_chunks_;
 
 public:
-  auto find(const uint32_t index) -> fuobject_item* {
+  auto find(const int32_t index) -> fuobject_item {
     if (index > this->num_elements_ || index < 0) {
-      return nullptr;
+      return {nullptr, 0, 0, 0};
     }
 
-    return &items_[index / elements_per_chunk][index % elements_per_chunk];
+    const int32_t chunk_index = index / elements_per_chunk;
+    const int32_t item_index = index % elements_per_chunk;
+
+    return items_[chunk_index][item_index];
   }
 
-  auto find_object(const uint32_t index) -> uobject* {
+  auto find_object(const int32_t index) -> uobject* {
     auto item = this->find(index);
-    if (!item) {
+    if (!item.object) {
       return nullptr;
     }
 
-    return item->object;
+    return item.object;
   }
 
-  auto size() const -> uint32_t {
+  auto size() const -> int32_t {
     return this->num_elements_;
   }
 
-  auto max_size() const -> uint32_t {
+  auto max_size() const -> int32_t {
     return this->max_elements_;
   }
 };
@@ -143,7 +143,7 @@ public:
   fobject_array* array_;
   bool is_default_array_;
 public:
-  auto find(const uint32_t index) -> fuobject_item* {
+  auto find(const int32_t index) -> fuobject_item {
     if (is_default_array_) {
       auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
       return default_array->find(index);
@@ -153,7 +153,7 @@ public:
     }
   }
 
-  auto find_object(const uint32_t index) -> uobject* {
+  auto find_object(const int32_t index) -> uobject* {
     if (is_default_array_) {
       auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
       return default_array->find_object(index);
@@ -163,7 +163,7 @@ public:
     }
   }
 
-  auto size() const -> uint32_t {
+  auto size() const -> int32_t {
     if (is_default_array_) {
       auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
       return default_array->size();
@@ -173,7 +173,7 @@ public:
     }
   }
 
-  auto max_size() const -> uint32_t {
+  auto max_size() const -> int32_t {
     if (is_default_array_) {
       auto default_array = reinterpret_cast<fdefault_uobject_array*>(array_);
       return default_array->max_size();
@@ -183,11 +183,29 @@ public:
     }
   }
 
-  auto begin() -> fuobject_item* {
+  auto chunks() const -> uint32_t {
+    if (is_default_array_) {
+      return 1;
+    } else {
+      auto chunked_array = reinterpret_cast<fchunked_object_array*>(array_);
+      return chunked_array->num_chunks_;
+    }
+  }
+
+  auto max_chunks() const -> uint32_t {
+    if (is_default_array_) {
+      return 1;
+    } else {
+      auto chunked_array = reinterpret_cast<fchunked_object_array*>(array_);
+      return chunked_array->max_chunks_;
+    }
+  }
+
+  auto begin() -> fuobject_item {
     return this->find(0);
   }
 
-  auto end() -> fuobject_item* {
+  auto end() -> fuobject_item {
     return this->find(this->size());
   }
 };

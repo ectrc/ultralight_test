@@ -19,14 +19,10 @@ auto __stdcall thread(void* module) -> void {
   LOG("Engine Version: {}, Version Number: {}", std::get<0>(result.value()), std::get<1>(result.value()));
 
   auto gobjects = runtime.load_gobjects();
-  LOG("GObjects: {}", (gobjects->size()));
+  LOG("GObjects Size: {}, GObjects Chunks: {}", (gobjects->size()), (gobjects->chunks()));
 
-  const auto object = gobjects->find_object(0x1);
-  if (object) {
-    LOG("Object Name: {}", object->name_->index_.id_);
-  } else {
-    LOG("Failed to find object with index 0x1");
-  }
+  const auto object = gobjects->find_object(0x231);
+  LOG("{:#x} {}", (uintptr_t)object, object->index_);
 
   FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(module), 0);
 }
