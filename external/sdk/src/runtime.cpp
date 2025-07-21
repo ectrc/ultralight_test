@@ -36,7 +36,7 @@ auto runtime::load_engine_version() -> std::expected<std::tuple<std::string, uin
 }
 
 auto runtime::load_gobjects() -> std::expected<uobject_array, sdk::find_error> {
-  static const auto global_objects = sdk::find_pattern(hat::compile_signature<"48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1">());
+  static const auto global_objects = sdk::find_pattern(hat::compile_signature<"48 8B 05 ? ? ? ? 48 8B 0C C8 48 8D 04 D1">(), 3);
   _ASSERT(global_objects.has_value() && "Failed to find global objects pattern");
 
   this->object_array_ = {global_objects.value(), this->engine_version_ < 421};

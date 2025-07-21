@@ -13,7 +13,7 @@ namespace sdk {
     offset_not_found
   };
 
-  auto find_pattern(const hat::signature_view& signature) -> std::expected<uintptr_t, sdk::find_error>;
+  auto find_pattern(const hat::signature_view& signature, size_t offset = 0) -> std::expected<uintptr_t, sdk::find_error>;
   auto find_offset(const char* name) -> std::expected<uintptr_t, sdk::find_error>;
 }
 

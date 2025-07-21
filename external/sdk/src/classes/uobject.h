@@ -182,6 +182,14 @@ public:
       return chunked_array->max_size();
     }
   }
+
+  auto begin() -> fuobject_item* {
+    return this->find(0);
+  }
+
+  auto end() -> fuobject_item* {
+    return this->find(this->size());
+  }
 };
 
 }
