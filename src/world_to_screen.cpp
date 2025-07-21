@@ -6,7 +6,6 @@ auto ericutil::world_to_screen::point(const vector_3& world, const vector_3& cam
   const auto clip_space = view_space * projection_matrix;
 
   if (clip_space.w <= 0.0f) {
-    LOG("Invalid clip space w value: {}", clip_space.w);
     return {vector_2{0.0f, 0.0f}, false};
   }
 
@@ -18,7 +17,6 @@ auto ericutil::world_to_screen::point(const vector_3& world, const vector_3& cam
   if (normalised_device_coordinates.x < -1.0f || normalised_device_coordinates.x > 1.0f ||
       normalised_device_coordinates.y < -1.0f || normalised_device_coordinates.y > 1.0f ||
       normalised_device_coordinates.z < -1.0f || normalised_device_coordinates.z > 1.0f) {
-    LOG("Normalised device coordinates out of bounds: ({}, {}, {})", normalised_device_coordinates.x, normalised_device_coordinates.y, normalised_device_coordinates.z);
     return {vector_2{0.0f, 0.0f}, false};
   }
 

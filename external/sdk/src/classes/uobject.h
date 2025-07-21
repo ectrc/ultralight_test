@@ -2,15 +2,15 @@
 #define uobject_h
 
 #include <cstdint>
+#include <variant>
+
+#include "macros.h"
 
 namespace sdk {
 
 class uobject {
 public:
-  uobject() = delete;
-  uobject(const uobject&) = delete;
-  uobject(uobject&&) = delete;
-  uobject& operator=(const uobject&) = delete;
+  NO_INIT(uobject);
 
 public:
   uintptr_t** vtable_;
@@ -44,6 +44,98 @@ class uclass : public ustruct {
 
 class ufunction : public ustruct {
 
+};
+
+struct fuobject_item {
+  uobject* object;
+  uint32_t flags;
+  uint32_t root_index;
+  uint32_t serial_number;
+};
+
+class fdefault_uobject_array {
+public:
+  NO_INIT(fdefault_uobject_array);
+
+public:
+  fuobject_item* object_array_;
+  uint32_t max_elements_;
+  uint32_t num_elements_;
+
+public:
+  auto find(const uint32_t index) -> fuobject_item* {
+    if (index >= this->num_elements_ || index < 0) {
+      return nullptr;
+    }
+
+    return &object_array_[index];
+  }
+
+  auto find_object(const uint32_t index) -> uobject* {
+    auto item = this->find(index);
+    if (!item) {
+      return nullptr;
+    }
+
+    return item->object;
+  }
+};
+
+class fchunked_object_array {
+public:
+  NO_INIT(fchunked_object_array);
+
+public:
+  enum
+  {
+    elements_per_chunk = 64 * 1024,
+  };
+
+  fuobject_item** items_;
+  fuobject_item* allocated_items_;
+  uint32_t max_elements_;
+  uint32_t num_elements_;
+  uint32_t max_chunks_;
+  uint32_t num_chunks_;
+
+public:
+  auto find(const uint32_t index) -> fuobject_item* {
+    if (index > this->num_elements_ || index < 0) {
+      return nullptr;
+    }
+
+    return &items_[index / elements_per_chunk][index % elements_per_chunk];
+  }
+
+  auto find_object(const uint32_t index) -> uobject* {
+    auto item = this->find(index);
+    if (!item) {
+      return nullptr;
+    }
+
+    return item->object;
+  }
+};
+
+class uobject_array {
+public:
+  uobject_array(uintptr_t array, bool is_default_array = true)
+    : array_(reinterpret_cast<fobject_array*>(array)), is_default_array_(is_default_array) {}
+public:
+  typedef std::variant<fdefault_uobject_array, fchunked_object_array> fobject_array;
+  
+  fobject_array* array_;
+  bool is_default_array_;
+public:
+  auto find(const uint32_t index) -> fuobject_item* {
+    if (is_default_array_) {
+      auto& default_array = std::get<fdefault_uobject_array>(*array_);
+      return default_array.find(index);
+    } else {
+      auto& chunked_array = std::get<fchunked_object_array>(*array_);
+      return chunked_array.find(index);
+    }
+  }
 };
 
 }

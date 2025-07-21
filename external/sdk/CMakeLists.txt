@@ -11,8 +11,9 @@ endif()
 
 add_subdirectory(external/libhat)
 
-add_library(sdk STATIC 
+add_library(sdk STATIC
   src/finder.cpp
+  src/runtime.cpp
 )
 
 target_include_directories(sdk PUBLIC include)

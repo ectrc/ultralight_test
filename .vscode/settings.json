@@ -88,6 +88,8 @@
     "chrono": "cpp",
     "forward_list": "cpp",
     "iomanip": "cpp",
-    "coroutine": "cpp"
+    "coroutine": "cpp",
+    "codecvt": "cpp",
+    "regex": "cpp"
   }
 }

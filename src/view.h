@@ -38,15 +38,15 @@ namespace ultraview {
     std::visit([](auto&& e) {
       using T = std::decay_t<decltype(e)>;
       if constexpr (std::is_same_v<T, mouse_event>) {
-        LOG("Mouse event: type={}, x={}, y={}, button={}", (int)e.type, e.x, e.y, (int)e.button);
+        // LOG("Mouse event: type={}, x={}, y={}, button={}", (int)e.type, e.x, e.y, (int)e.button);
         ultraview::get_view()->FireMouseEvent(e);
       }
       else if constexpr (std::is_same_v<T, keyboard_event>) {
-        LOG("Key event: type={}, key={}, mods={}", (int)e.type, e.key_identifier.utf8().data(), e.modifiers);
+        // LOG("Key event: type={}, key={}, mods={}", (int)e.type, e.key_identifier.utf8().data(), e.modifiers);
         ultraview::get_view()->FireKeyEvent(e);
       }
       else if constexpr (std::is_same_v<T, scroll_event>) {
-        LOG("Scroll event: delta_x={}, delta_y={}", e.delta_x, e.delta_y);
+        // LOG("Scroll event: delta_x={}, delta_y={}", e.delta_x, e.delta_y);
         ultraview::get_view()->FireScrollEvent(e);
       }
     }, ev);
