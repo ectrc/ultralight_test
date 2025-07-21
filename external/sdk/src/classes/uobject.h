@@ -142,6 +142,37 @@ public:
   
   fobject_array* array_;
   bool is_default_array_;
+
+  class iterator {
+  public:
+    iterator(uobject_array* parent, int32_t index)
+      : parent_(parent), index_(index) {}
+
+    auto operator*() const -> fuobject_item {
+      return parent_->find(index_);
+    }
+
+    auto operator++() -> iterator& {
+      ++index_;
+      return *this;
+    }
+
+    auto operator!=(const iterator& other) const -> bool {
+      return index_ != other.index_;
+    }
+
+  private:
+    uobject_array* parent_;
+    int32_t index_;
+  };
+
+  auto begin() -> iterator {
+    return iterator(this, 0);
+  }
+
+  auto end() -> iterator {
+    return iterator(this, this->size());
+  }
 public:
   auto find(const int32_t index) -> fuobject_item {
     if (is_default_array_) {
@@ -201,13 +232,6 @@ public:
     }
   }
 
-  auto begin() -> fuobject_item {
-    return this->find(0);
-  }
-
-  auto end() -> fuobject_item {
-    return this->find(this->size());
-  }
 };
 
 }

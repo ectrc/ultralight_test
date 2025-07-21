@@ -16,6 +16,8 @@ https://github.com/user-attachments/assets/16082c67-d50a-45bb-8ca5-33d9aa7e5494
 
 - Download the Ultralight SDK from [Ultralight's official website](https://ultralig.ht/), rename to "ultralight" and place it in `/external` directory.
 
+- To inject, make sure that all Ultralight dependencies are in the same directory as the executable or in the system PATH.
+
 ### bugs
 
 - resizing fucks up

@@ -24,6 +24,12 @@ auto __stdcall thread(void* module) -> void {
   const auto object = gobjects->find_object(0x231);
   LOG("{:#x} {}", (uintptr_t)object, object->index_);
 
+  for (const auto& item : *gobjects) {
+    if (item.object) {
+      LOG("Object: {:#x} Index: {}", (uintptr_t)item.object, item.object->index_);
+    }
+  }
+
   FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(module), 0);
 }
 
