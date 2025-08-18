@@ -9,11 +9,14 @@ auto __stdcall thread(void* module) -> void {
   MH_Initialize();
   LOG("Hello World");
 
-  // const auto direct = direct_hook::instance();
-  // direct->present_hook_.enable();
-  // direct->resize_hook_.enable();
+  const auto direct = direct_hook::instance();
+  direct->present_hook_.enable();
+  direct->resize_hook_.enable();
 
   auto runtime = sdk::runtime::get();
+
+  sdk::fstring a{L"hello"};
+  LOG("fstring: {}", a.to_string());
 
   auto result = runtime.load_engine_version();
   LOG("Engine Version: {}, Version Number: {}", std::get<0>(result.value()), std::get<1>(result.value()));
@@ -27,9 +30,9 @@ auto __stdcall thread(void* module) -> void {
   static const auto string_library = sdk::uobject::find<sdk::uobject>("/Script/Engine.Default__KismetStringLibrary");
   LOG("KismetStringLibrary: {:#x}", (uintptr_t)string_library);
 
-  LOG("UObject Name: {}", object->name_->to_string());
+  // LOG("UObject Name: {}", object->name_->to_string());
 
-  FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(module), 0);
+  // FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(module), 0);
 }
 
 auto __stdcall DllExit(void* module, const unsigned long reason, void*) -> bool {

@@ -75,12 +75,20 @@ namespace sdk {
 
       return it != addresses.end() ? *it : address{0};
     };
+    
+    const auto sigs = {
+      hat::compile_signature<"48 8D 05 ?? ?? ?? ??">(),
+      hat::compile_signature<"4C 8D 05 ?? ?? ?? ??">(),
+      hat::compile_signature<"4C 8D 15 ?? ?? ?? ??">()
+    };
 
-    auto sig1 = find_pattern_all(hat::compile_signature<"48 8D 05 ?? ?? ?? ??">());
-    auto sig2 = find_pattern_all(hat::compile_signature<"4C 8D 05 ?? ?? ?? ??">());
+    for (const auto& search : sigs) {
+      std::vector<uintptr_t> results = find_pattern_all(search);
+      if (results.empty()) {
+        continue;
+      }
 
-    for (const auto& search : {sig1, sig2}) {
-      address result = process_pattern(search);
+      address result = process_pattern(results);
       if (result.get() != 0) {
         return result.get();
       }

@@ -10,6 +10,8 @@
 #include "../macros.h"
 #include "../memory.h"
 
+#include "../../../include/logger.h"
+
 namespace sdk {
 
 template<typename type_>
@@ -19,11 +21,11 @@ public:
   tarray() : data_(nullptr), count_(0), max_(0) {}
 public:
   type_* data_;
-  uint32_t count_;
-  uint32_t max_;
+  int32_t count_;
+  int32_t max_;
 
 public:
-  auto at(const uint32_t index) -> type_* {
+  auto at(const int32_t index) -> type_* {
     if (index >= count_ || index < 0) {
       return nullptr;
     }
@@ -31,7 +33,7 @@ public:
     return &data_[index];
   }
 
-  auto reserve(const uint32_t count, size_t size = sizeof(type_)) -> void {
+  auto reserve(const int32_t count, size_t size = sizeof(type_)) -> void {
     data_ = static_cast<type_*>(fmemory::get().realloc(data_, (max_ = count + count_) * size));
   }
 
@@ -42,7 +44,7 @@ public:
     return data_[count_ - 1];
   }
 
-  auto remove(const uint32_t index) -> void {
+  auto remove(const int32_t index) -> void {
     if (index >= count_ || index < 0) {
       return;
     }
@@ -54,15 +56,15 @@ public:
     count_--;
   }
 
-  auto size() const -> uint32_t {
+  auto size() const -> int32_t {
     return count_;
   }
 
-  auto max_size() const -> uint32_t {
+  auto max_size() const -> int32_t {
     return max_;
   }
 
-  auto operator[](const uint32_t index) const -> type_* {
+  auto operator[](const int32_t index) const -> type_* {
     return &data_[index];
   }
 
@@ -85,12 +87,12 @@ public:
 
 class fstring : public tarray<wchar_t> {
 public:
-  fstring() : tarray<wchar_t>() {}
+  fstring() : tarray<wchar_t>() {
+    LOG("fstring default constructor called");
+  }
   
   fstring(const wchar_t* str) {
-    if (!str) {
-      return;
-    }
+    LOG("fstring constructor called with str");
 
     max_ = count_ = *str ? static_cast<uint32_t>(wcslen(str)) + 1 : 0;
     if (count_ && str) {
@@ -99,6 +101,7 @@ public:
     }
   }
   fstring(const std::wstring& str) {
+    LOG("fstring constructor called with wstring");
     max_ = count_ = static_cast<uint32_t>(str.size()) + 1;
     if (count_) {
       data_ = static_cast<wchar_t*>(fmemory::get().malloc(count_ * 2));
@@ -106,6 +109,7 @@ public:
     }
   }
   auto operator=(const wchar_t* str) -> fstring {
+    LOG("fstring assignment operator called with str");
     return fstring(str);
   }
 
@@ -128,15 +132,10 @@ public:
   }
 };
 
-struct fname_entry_id
-{
-  uint32_t id_;
-};
-
 class fname {
 public:
   auto operator==(const fname& other) const -> bool {
-    return index_.id_ == other.index_.id_;
+    return index_ == other.index_;
   }
 
   auto operator!=(const fname& other) const -> bool {
@@ -145,7 +144,7 @@ public:
 
   auto to_string() const -> std::string;
 public:
-  fname_entry_id index_;
+  uint32_t index_;
   uint32_t number_;
 };
 

@@ -6,31 +6,30 @@
 namespace sdk {
 
 auto fname::to_string() const -> std::string {
-  static const auto string_library = uobject::find<uobject>("/Script/Engine.Default__KismetStringLibrary");
-  _ASSERT(string_library && "Failed to find KismetStringLibrary");
+  static const auto to_string_string_ref = sdk::find_string_ref(L"MaterialQualityOverrides");
+  _ASSERT(to_string_string_ref != 0 && "Failed to find string reference for fname::to_string");
+  LOG("to_string_string_ref: index: {:#x}", (uintptr_t)to_string_string_ref);
 
-  LOG("KismetStringLibrary: {:#x}", (uintptr_t)string_library);
+  static const auto to_string_function = sdk::find_pattern_near(to_string_string_ref, hat::compile_signature<"E8 ?? ?? ?? ??">(), 1, sdk::find_direction::backward);
+  _ASSERT(to_string_function.has_value() && "Failed to find function for fname::to_string");
+  
+  typedef void(*to_string_t)(fname*, fstring&);
+  static const auto to_string = reinterpret_cast<to_string_t>(to_string_function.value());
+  
+  LOG("APPEND_STRING: index: {:#x}", (uintptr_t)to_string);
 
-  static const auto to_string_function = uobject::find<ufunction>("/Script/Engine.KismetStringLibrary.Conv_NameToString");
-  _ASSERT(to_string_function && "Failed to find Conv_NameToString function");
+  fstring out{L"AAAA_"};
+  to_string(const_cast<fname*>(this), out);
 
-  LOG("Conv_NameToString: {:#x}", (uintptr_t)to_string_function);
+  LOG("fname::to_string: index: {}, number: {}", index_, number_);
 
-  LOG("ABOYUT TO ALLOC FSTRING");
-
-  struct { fname in; fstring out; } params {*this};
-
-  LOG("ABOUT TO CALL PROCESS_EVENT");
-  string_library->process_event(to_string_function, &params);
-
-  LOG("ABOUT TO LOG OUT FSTRING");
-  LOG("Converted Name to String: {}", params.out.to_string());
-
-  std::string result = params.out.to_string();
-
-  LOG("ABOUT TO FREE FSTRING");
-  params.out.free();
-  return result;
+  return out.to_string();
 }
 
 }
+
+// 0x7ff634c483e0
+
+//to_string_string_ref: index: 0x7ff631c95fe0
+// APPEND_STRING: index: 0x7ff634c483e0
+//
